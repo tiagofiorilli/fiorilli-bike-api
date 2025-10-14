@@ -1,0 +1,10 @@
+# Arquivos sensíveis
+tokens.json
+__pycache__/
+.env
+*.pyc
+*.pyo
+*.pyd
+*.env
+produtos.json
+
