@@ -3,9 +3,3 @@ flask-cors
 gunicorn
 requests
 python-dotenv
-<<<<<<< HEAD
-=======
-
-
-
->>>>>>> 7f6785f (Atualiza .gitignore, app.py, render.yaml e requirements)
