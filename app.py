@@ -104,7 +104,10 @@ def produtos():
 # ================================================================
 @app.route("/listar", methods=["GET"])
 def listar_produtos():
-    """Busca todos os produtos da conta do Mercado Livre com paginação automática."""
+    """
+    Busca todos os produtos da conta do Mercado Livre (com paginação),
+    salva localmente em produtos.json e retorna o catálogo atualizado.
+    """
     try:
         token = get_access_token()
         headers = {"Authorization": f"Bearer {token}"}
@@ -117,7 +120,7 @@ def listar_produtos():
             url = f"https://api.mercadolibre.com/users/{SELLER_ID}/items/search?limit={limit}&offset={offset}"
             r = requests.get(url, headers=headers)
 
-            # se token expirou, renova automaticamente
+            # Se o token expirou, renova automaticamente
             if r.status_code == 401:
                 token = renovar_token()
                 headers["Authorization"] = f"Bearer {token}"
@@ -126,8 +129,9 @@ def listar_produtos():
             r.raise_for_status()
             dados = r.json()
             resultados = dados.get("results", [])
+
             if not resultados:
-                break  # fim da listagem
+                break  # sem mais produtos
 
             for item_id in resultados:
                 info = requests.get(f"https://api.mercadolibre.com/items/{item_id}", headers=headers).json()
@@ -141,12 +145,24 @@ def listar_produtos():
                 })
 
             offset += limit
-            # opcional: limite de segurança
-            if offset > 2000:  # evite chamadas infinitas
+
+            # Segurança contra loop infinito
+            if offset > 2000:
+                app.logger.warning("⚠️ Limite de 2000 produtos atingido (paginador interrompido).")
                 break
 
+        # Caminho absoluto do arquivo produtos.json
+        caminho = os.path.join(os.path.dirname(__file__), "produtos.json")
+
+        # Salva o catálogo completo localmente
+        with open(caminho, "w", encoding="utf-8") as f:
+            json.dump(produtos, f, indent=2, ensure_ascii=False)
+
+        app.logger.info(f"✅ Catálogo salvo em {caminho} ({len(produtos)} produtos).")
+
         return jsonify({
-            "total": len(produtos),
+            "mensagem": f"{len(produtos)} produtos atualizados e salvos com sucesso!",
+            "arquivo": "produtos.json",
             "produtos": produtos
         }), 200
 
