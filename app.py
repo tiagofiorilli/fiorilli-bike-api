@@ -37,10 +37,18 @@ def renovar_token():
     r.raise_for_status()
 
     new_tokens = r.json()
-    with open(TOKENS_PATH, "w", encoding="utf-8") as f:
-        json.dump(new_tokens, f, indent=2, ensure_ascii=False)
+    import os
 
-    return new_tokens["access_token"]
+    @app.route("/produtos", methods=["GET"])
+    def produtos():
+        try:
+            caminho = os.path.join(os.path.dirname(__file__), "produtos.json")
+            with open(caminho, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+            return jsonify(dados), 200
+        except FileNotFoundError:
+            return jsonify({"erro": f"Arquivo produtos.json não encontrado em {caminho}"}), 500
+
 
 def get_access_token():
     tokens = carregar_tokens()
