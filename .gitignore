@@ -1,10 +1,28 @@
-# Arquivos sensíveis
-tokens.json
-__pycache__/
+# ====== PROTEÇÃO DE CREDENCIAIS ======
 .env
+tokens.json
+*.pem
+*.key
+*.crt
+
+# ====== CACHE, LOGS, TEMP ======
+__pycache__/
 *.pyc
 *.pyo
-*.pyd
-*.env
-produtos.json
+*.log
+*.tmp
 
+# ====== ARQUIVOS DE AMBIENTE LOCAL ======
+.vscode/
+.idea/
+.DS_Store
+
+# ====== DEPLOY LOCAL ======
+venv/
+.venv/
+.env.local
+.env.dev
+
+# ====== SAÍDAS E BACKUPS ======
+/produtos.json
+/output/
