@@ -1,3 +1,5 @@
-flask
+Flask
+flask-cors
+gunicorn
 requests
-schedule
+python-dotenv
