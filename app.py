@@ -21,11 +21,11 @@ SELLER_ID = os.getenv("SELLER_ID")
 # ================================================================
 
 def carregar_tokens():
-    """Carrega tokens de autenticação do Mercado Livre."""
-    if not os.path.exists(TOKENS_PATH):
-        raise FileNotFoundError(f"Arquivo de tokens não encontrado: {TOKENS_PATH}")
-    with open(TOKENS_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    return {
+        "access_token": os.getenv("ACCESS_TOKEN"),
+        "refresh_token": os.getenv("REFRESH_TOKEN")
+    }
+
 
 
 def renovar_token():
@@ -104,38 +104,56 @@ def produtos():
 # ================================================================
 @app.route("/listar", methods=["GET"])
 def listar_produtos():
-    """Busca os produtos diretamente na API do Mercado Livre."""
+    """Busca todos os produtos da conta do Mercado Livre com paginação automática."""
     try:
         token = get_access_token()
         headers = {"Authorization": f"Bearer {token}"}
-        url = f"https://api.mercadolibre.com/users/{SELLER_ID}/items/search?limit=40"
-        r = requests.get(url, headers=headers)
 
-        if r.status_code == 401:
-            token = renovar_token()
-            headers["Authorization"] = f"Bearer {token}"
+        produtos = []
+        limit = 50  # máximo permitido pela API
+        offset = 0
+
+        while True:
+            url = f"https://api.mercadolibre.com/users/{SELLER_ID}/items/search?limit={limit}&offset={offset}"
             r = requests.get(url, headers=headers)
 
-        r.raise_for_status()
-        dados = r.json()
-        produtos = []
+            # se token expirou, renova automaticamente
+            if r.status_code == 401:
+                token = renovar_token()
+                headers["Authorization"] = f"Bearer {token}"
+                r = requests.get(url, headers=headers)
 
-        for item_id in dados.get("results", []):
-            info = requests.get(f"https://api.mercadolibre.com/items/{item_id}", headers=headers).json()
-            produtos.append({
-                "id": info.get("id"),
-                "nome": info.get("title"),
-                "preco": info.get("price"),
-                "estoque": info.get("available_quantity"),
-                "categoria": info.get("category_id"),
-                "link": info.get("permalink")
-            })
+            r.raise_for_status()
+            dados = r.json()
+            resultados = dados.get("results", [])
+            if not resultados:
+                break  # fim da listagem
 
-        return jsonify(produtos), 200
+            for item_id in resultados:
+                info = requests.get(f"https://api.mercadolibre.com/items/{item_id}", headers=headers).json()
+                produtos.append({
+                    "id": info.get("id"),
+                    "nome": info.get("title"),
+                    "preco": info.get("price"),
+                    "estoque": info.get("available_quantity"),
+                    "categoria": info.get("category_id"),
+                    "link": info.get("permalink")
+                })
+
+            offset += limit
+            # opcional: limite de segurança
+            if offset > 2000:  # evite chamadas infinitas
+                break
+
+        return jsonify({
+            "total": len(produtos),
+            "produtos": produtos
+        }), 200
 
     except Exception as e:
         app.logger.error(f"❌ Erro em listar_produtos: {e}")
         return jsonify({"erro": f"Falha ao listar produtos: {str(e)}"}), 500
+
 
 
 # ================================================================
