@@ -91,3 +91,4 @@ if __name__ == "__main__":
 
     print(f"✅ {len(produtos)} produtos salvos em {OUTPUT_PATH}")
 
+
